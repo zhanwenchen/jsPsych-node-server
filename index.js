@@ -26,8 +26,10 @@ function start_webserver(port, static_directory){
 
 function start_socket(){
   io.on('connection', function (socket) {
+    console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard connection');
 
     socket.on('join', function(data){
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard join');
       var room = find_room(data);
       join_room(socket, room);
       socket.emit('join-reply', {
@@ -36,6 +38,7 @@ function start_socket(){
     });
 
     socket.on('disconnect', function () {
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard disconnect');
       io.to(socket.room_id).emit('end', {});
       if(typeof socket.room_id !== 'undefined' && rooms[socket.room_id].participants() == 0){
         destroy_room(socket.room_id);
@@ -43,6 +46,7 @@ function start_socket(){
     });
 
     socket.on('turn', function(data){
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard turn');
       rooms[socket.room_id].messages.turn.push(data);
       if(rooms[socket.room_id].messages.turn.length == rooms[socket.room_id].participants()){
         var td = rooms[socket.room_id].messages.turn;
@@ -52,6 +56,7 @@ function start_socket(){
     });
 
     socket.on('wait', function(){
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard wait');
       rooms[socket.room_id].messages.wait++;
       if(rooms[socket.room_id].messages.wait == rooms[socket.room_id].participants()){
         rooms[socket.room_id].messages.wait = 0;
@@ -60,6 +65,7 @@ function start_socket(){
     });
 
     socket.on('sync', function(data){
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard sync');
       var id = data.id;
       if(typeof rooms[socket.room_id].messages.sync[id] == 'undefined'){
         rooms[socket.room_id].messages.sync[id] = {};
@@ -73,6 +79,7 @@ function start_socket(){
     });
 
     socket.on('write-data', function(data){
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard write-data');
       if(typeof database !== 'undefined'){
         database.write(data);
       } else {
@@ -184,13 +191,16 @@ function create_room(id, experiment_id, total_participants){
       io.sockets.connected[c].ready_id = idx;
       idx++;
       io.sockets.connected[c].once('ready-reply', function(message){
+        console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server heard ready-reply');
         room.messages.ready.push(message.id);
         if(room.messages.ready.length == room.total_participants){
           // TODO: end timeout here
           room.start();
+          console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server emitted start');
         }
       });
       io.sockets.connected[c].emit('ready', {id: io.sockets.connected[c].ready_id});
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server emitted ready');
     }
   };
 
@@ -202,6 +212,7 @@ function create_room(id, experiment_id, total_participants){
       io.sockets.connected[c].player_id = idx;
       idx++;
       io.sockets.connected[c].emit('start', {player_id: io.sockets.connected[c].player_id});
+      console.log(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + ' server emitted start');
     }
   }
 
@@ -220,6 +231,8 @@ module.exports = {
 
   start: function(opts){
 
+    console.log('calling start_webserver');
+    console.log('opts: ' + opts);
     start_webserver(opts.port, opts.static_directory);
 
     start_socket();
